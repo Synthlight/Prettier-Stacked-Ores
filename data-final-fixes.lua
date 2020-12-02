@@ -1,46 +1,66 @@
 require "util"
 
--- Deadlock's Stacking Beltboxes
--- Deadlock's Stacking Beltboxes & Compact Loaders
+-- We have 'RealisticOres' as an optional dependency, so it'll update the base item icons by itself and we don't need to worry about which one to use.
+-- 'deadlock-beltboxes-loaders' doesn't depend on that so it'll build it with the base icons before 'RealisticOres' changes them.
+-- In either case, we rebuild the stacked icons and realistic or no, the correct ones are layered onto wooden crates.
+
+local woodenChest = data.raw.item["wooden-chest"]
+
+local function UpdateBaseIcon(deadlockItemRecipe, baseItem)
+    local woodIcon = {icon = woodenChest.icon, icon_size = woodenChest.icon_size}
+    local baseIcon = {icon = baseItem.icon, icon_size = baseItem.icon_size, icon_mipmaps = baseItem.icon_mipmaps, scale = 0.5 * 0.75}
+
+    deadlockItemRecipe.icons = {woodIcon, baseIcon}
+    deadlockItemRecipe.icon = nil
+    deadlockItemRecipe.icon_size = nil
+    deadlockItemRecipe.scale = nil
+    deadlockItemRecipe.icon_mipmaps = nil
+end
+
+local function UpdateItemIcons(deadlockItem, baseItem)
+    local woodIcon = {filename = woodenChest.icon, size = woodenChest.icon_size, scale = 0.25}
+
+    -- Setup pictures for belt icons.
+    local pictureLayers = {}
+
+    for _, picture in pairs(baseItem.pictures) do
+        local newPicture = table.deepcopy(picture)
+        local innerLayers = {woodIcon}
+
+        if (newPicture.scale) then
+            newPicture.scale = newPicture.scale * 0.75
+
+            table.insert(innerLayers, newPicture)
+        elseif newPicture.layers then
+            -- It's got multiple inner layers.
+            for _, layeredPic in pairs(newPicture.layers) do
+                layeredPic.scale = layeredPic.scale * 0.75
+
+                table.insert(innerLayers, layeredPic)
+            end
+        end
+
+        local layer = {layers = innerLayers}
+        table.insert(pictureLayers, layer)
+    end
+
+    deadlockItem.pictures = pictureLayers
+
+    -- Set normal icon used in inventories, alt overlays, etc.
+    UpdateBaseIcon(deadlockItem, baseItem)
+end
+
+local function ReplaceStackIcons(itemName, targetDir)
+    local baseItem = data.raw.item[itemName]
+    UpdateItemIcons(data.raw.item["deadlock-stack-"..itemName], baseItem)
+    UpdateBaseIcon(data.raw.recipe["deadlock-stacks-stack-"..itemName], baseItem)
+    UpdateBaseIcon(data.raw.recipe["deadlock-stacks-unstack-"..itemName], baseItem)
+end
+
 if mods["DeadlockStacking"] or mods["deadlock-beltboxes-loaders"] then
-    local realisticOreNames = {"iron-ore", "copper-ore", "uranium-ore"}
-    local nonRealisticOreNames = {"coal", "stone"}
+    local oreNames = {"iron-ore", "copper-ore", "uranium-ore", "coal", "stone"}
 
-    local function replaceStackIcon(somethingWithIcon, itemName, targetDir)
-        if not somethingWithIcon then return end
-
-        basePath = "__Prettier-Stacked-Ores__/graphics/icons/mip/"..targetDir
-        baseIcon = basePath..itemName
-
-        somethingWithIcon.icon = baseIcon..".png"
-        somethingWithIcon.icon_size = 64
-        somethingWithIcon.icons = nil
-        somethingWithIcon.icon_mipmaps = 4
-        somethingWithIcon.pictures = {
-            { size = 64, filename = baseIcon..".png",   scale = 0.25, mipmap_count = 4 },
-            { size = 64, filename = baseIcon.."-1.png", scale = 0.25, mipmap_count = 4 },
-            { size = 64, filename = baseIcon.."-2.png", scale = 0.25, mipmap_count = 4 },
-            { size = 64, filename = baseIcon.."-3.png", scale = 0.25, mipmap_count = 4 }
-        }
-    end
-
-    local function replaceStackIcons(itemName, targetDir)
-        replaceStackIcon(data.raw.item["deadlock-stack-"..itemName], itemName, targetDir)
-        replaceStackIcon(data.raw.recipe["deadlock-stacks-stack-"..itemName], itemName, targetDir)
-        replaceStackIcon(data.raw.recipe["deadlock-stacks-unstack-"..itemName], itemName, targetDir)
-    end
-
-    for _, oreName in ipairs(nonRealisticOreNames) do
-        replaceStackIcons(oreName, "")
-    end
-
-    if mods["RealisticOres"] then
-        for _, oreName in ipairs(realisticOreNames) do
-            replaceStackIcons(oreName, "realistic/")
-        end
-    else
-        for _, oreName in ipairs(realisticOreNames) do
-            replaceStackIcons(oreName, "base/")
-        end
+    for _, oreName in ipairs(oreNames) do
+        ReplaceStackIcons(oreName, "")
     end
 end
