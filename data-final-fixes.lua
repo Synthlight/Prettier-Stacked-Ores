@@ -5,6 +5,7 @@ require "util"
 -- In either case, we rebuild the stacked icons and realistic or no, the correct ones are layered onto wooden crates.
 
 local woodenChest = data.raw.item["wooden-chest"]
+--log(serpent.block(woodenChest))
 
 local function UpdateBaseIcon(deadlockItemRecipe, baseItem)
     local woodIcon = {icon = woodenChest.icon, icon_size = woodenChest.icon_size}
@@ -18,7 +19,16 @@ local function UpdateBaseIcon(deadlockItemRecipe, baseItem)
 end
 
 local function UpdateItemIcons(deadlockItem, baseItem)
-    local woodIcon = {filename = woodenChest.icon, size = woodenChest.icon_size, scale = 0.25}
+    --log(deadlockItem.name)
+
+    local woodIcon = {
+        filename = woodenChest.icon,
+        size = defines.default_icon_size, -- woodenChest.icon_size,
+        scale = 0.50
+    }
+
+    --log("woodIcon:")
+    --log(serpent.block(woodIcon))
 
     -- Setup pictures for belt icons.
     local pictureLayers = {}
@@ -44,7 +54,10 @@ local function UpdateItemIcons(deadlockItem, baseItem)
         table.insert(pictureLayers, layer)
     end
 
+    --log("deadlockItem.pictures:")
     deadlockItem.pictures = pictureLayers
+
+    --log(serpent.block(deadlockItem.pictures))
 
     -- Set normal icon used in inventories, alt overlays, etc.
     UpdateBaseIcon(deadlockItem, baseItem)
@@ -59,6 +72,10 @@ end
 
 if mods["DeadlockStacking"] or mods["deadlock-beltboxes-loaders"] then
     local oreNames = {"iron-ore", "copper-ore", "uranium-ore", "coal", "stone"}
+
+    if mods["space-age"] then
+        table.insert(oreNames, "tungsten-ore")
+    end
 
     for _, oreName in ipairs(oreNames) do
         ReplaceStackIcons(oreName, "")
