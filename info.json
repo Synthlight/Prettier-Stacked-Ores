@@ -9,7 +9,7 @@
     "dependencies": [
         "base >= 2.0",
         "? DeadlockStacking",
-        "? deadlock-beltboxes-loaders",
+        "? deadlock-beltboxes-loaders >= 2.5.1",
         "? RealisticOres",
         "? space-age"
     ]
